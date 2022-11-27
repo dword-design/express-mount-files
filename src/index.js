@@ -3,7 +3,7 @@ const { Router } = require('express');
 const mountMiddlewares = require('./mountMiddlewares');
 const mountRoutes = require('./mountRoutes');
 
-module.exports = function(
+module.exports = async function(
   root,
   { cwd = process.cwd(), viewExtensions = [], paramChar = '$' } = {}
 ) {
@@ -18,7 +18,7 @@ module.exports = function(
   });
 
   // And then the actual routes
-  mountRoutes(router, root, {
+  await mountRoutes(router, root, {
     routes: routesFromMiddlewares,
     viewExtensions,
     paramChar

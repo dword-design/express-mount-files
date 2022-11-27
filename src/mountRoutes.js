@@ -5,13 +5,13 @@ const toExpressPath = require('./toExpressPath');
 const compareRouteDepth = require('./compareRouteDepth');
 const compareRouteVariability = require('./compareRouteVariability');
 
-module.exports = function mountRoutes(
+module.exports = async function mountRoutes(
   router,
   root,
   { routes = [], viewExtensions = [], paramChar }
 ) {
   routes
-    .concat(discoverRoutes(root, { viewExtensions, paramChar }))
+    .concat(await discoverRoutes(root, { viewExtensions, paramChar }))
     .sort((routeA, routeB) => {
       return (
         -1 * compareRouteDepth(routeA.routePath, routeB.routePath) ||
@@ -25,29 +25,31 @@ module.exports = function mountRoutes(
     });
 };
 
-function discoverRoutes(root, { viewExtensions, paramChar }) {
-  return fastGlob
-    .sync(
-      `**/{*.,}(${HTTP_METHODS.join('|')}).(${['js', ...viewExtensions].join(
-        '|'
-      )})`,
-      {
-        cwd: root
-      }
-    )
-    .map(filePath => {
-      const fullPath = path.resolve(root, filePath);
-      const { routePath, method, extension } = configForFile(filePath);
+async function discoverRoutes(root, { viewExtensions, paramChar }) {
+  return Promise.all(
+    fastGlob
+      .sync(
+        `**/{*.,}(${HTTP_METHODS.join('|')}).(${['js', ...viewExtensions].join(
+          '|'
+        )})`,
+        {
+          cwd: root
+        }
+      )
+      .map(async filePath => {
+        const fullPath = path.resolve(root, filePath);
+        const { routePath, method, extension } = configForFile(filePath);
 
-      const handler = getHandler(fullPath, extension);
-      return {
-        fullPath,
-        routePath: toExpressPath(routePath, { paramChar }),
-        method,
-        extension,
-        handler
-      };
-    });
+        const handler = await getHandler(fullPath, extension);
+        return {
+          fullPath,
+          routePath: toExpressPath(routePath, { paramChar }),
+          method,
+          extension,
+          handler
+        };
+      })
+  );
 }
 
 function configForFile(filePath) {
@@ -66,9 +68,9 @@ function configForFile(filePath) {
   return { routePath, method, extension };
 }
 
-function getHandler(filePath, extension) {
+async function getHandler(filePath, extension) {
   if (extension == 'js') {
-    return require(filePath);
+    return (await import(filePath)).default;
   } else {
     return function(req, res) {
       res.render(filePath, { req, res });
