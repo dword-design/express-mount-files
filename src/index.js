@@ -12,7 +12,7 @@ module.exports = async function(
   const router = Router();
 
   // First mount the middlewares
-  const routesFromMiddlewares = mountMiddlewares(router, root, {
+  const routesFromMiddlewares = await mountMiddlewares(router, root, {
     cwd,
     paramChar
   });

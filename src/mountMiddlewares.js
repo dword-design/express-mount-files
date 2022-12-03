@@ -6,15 +6,15 @@ const toExpressPath = require('./toExpressPath');
 const compareRouteDepth = require('./compareRouteDepth');
 const compareRouteVariability = require('./compareRouteVariability');
 
-module.exports = function mountMiddlewares(router, root, { paramChar }) {
+module.exports = async function mountMiddlewares(router, root, { paramChar }) {
   // Extra routes to configure
   const routesFromMiddlewares = [];
   // First let's list the routes file
-  fastGlob
+  (await Promise.all(fastGlob
     .sync('**/routes.js', { cwd: root })
-    .map(filePath => {
+    .map(async filePath => {
       const fullPath = path.resolve(root, filePath);
-      const config = require(fullPath);
+      const config = (await import(fullPath)).default;
 
       return {
         // We need the express routePath here so that
@@ -22,7 +22,7 @@ module.exports = function mountMiddlewares(router, root, { paramChar }) {
         routePath: toExpressPath(path.dirname(filePath), { paramChar }),
         config
       };
-    })
+    })))
     .sort(({ routePath: routePathA }, { routePath: routePathB }) => {
       return (
         compareRouteDepth(routePathA, routePathB) ||
