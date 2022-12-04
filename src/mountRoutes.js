@@ -1,17 +1,18 @@
 const fastGlob = require('fast-glob');
 const path = require('path');
+const jiti = require('jiti');
 const HTTP_METHODS = require('./HTTP_METHODS');
 const toExpressPath = require('./toExpressPath');
 const compareRouteDepth = require('./compareRouteDepth');
 const compareRouteVariability = require('./compareRouteVariability');
 
-module.exports = async function mountRoutes(
+module.exports = function mountRoutes(
   router,
   root,
-  { routes = [], viewExtensions = [], paramChar }
+  { routes = [], viewExtensions = [], paramChar, jitiOptions }
 ) {
   routes
-    .concat(await discoverRoutes(root, { viewExtensions, paramChar }))
+    .concat(discoverRoutes(root, { viewExtensions, paramChar, jitiOptions }))
     .sort((routeA, routeB) => {
       return (
         -1 * compareRouteDepth(routeA.routePath, routeB.routePath) ||
@@ -25,31 +26,29 @@ module.exports = async function mountRoutes(
     });
 };
 
-async function discoverRoutes(root, { viewExtensions, paramChar }) {
-  return Promise.all(
-    fastGlob
-      .sync(
-        `**/{*.,}(${HTTP_METHODS.join('|')}).(${['js', ...viewExtensions].join(
-          '|'
-        )})`,
-        {
-          cwd: root
-        }
-      )
-      .map(async filePath => {
-        const fullPath = path.resolve(root, filePath);
-        const { routePath, method, extension } = configForFile(filePath);
+function discoverRoutes(root, { viewExtensions, paramChar, jitiOptions }) {
+  return fastGlob
+    .sync(
+      `**/{*.,}(${HTTP_METHODS.join('|')}).(${['js', ...viewExtensions].join(
+        '|'
+      )})`,
+      {
+        cwd: root
+      }
+    )
+    .map(filePath => {
+      const fullPath = path.resolve(root, filePath);
+      const { routePath, method, extension } = configForFile(filePath);
 
-        const handler = await getHandler(fullPath, extension);
-        return {
-          fullPath,
-          routePath: toExpressPath(routePath, { paramChar }),
-          method,
-          extension,
-          handler
-        };
-      })
-  );
+      const handler = getHandler(fullPath, extension, { jitiOptions });
+      return {
+        fullPath,
+        routePath: toExpressPath(routePath, { paramChar }),
+        method,
+        extension,
+        handler
+      };
+    });
 }
 
 function configForFile(filePath) {
@@ -68,9 +67,10 @@ function configForFile(filePath) {
   return { routePath, method, extension };
 }
 
-async function getHandler(filePath, extension) {
+function getHandler(filePath, extension, { jitiOptions }) {
   if (extension == 'js') {
-    return (await import(filePath)).default;
+    const jitiInstance = jiti(process.cwd(), jitiOptions);
+    return jitiInstance(`./${path.relative(process.cwd(), filePath)}`);
   } else {
     return function(req, res) {
       res.render(filePath, { req, res });

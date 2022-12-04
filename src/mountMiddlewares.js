@@ -1,20 +1,25 @@
 const fastGlob = require('fast-glob');
 const path = require('path');
 const { Router } = require('express');
+const jiti = require('jiti');
 const HTTP_METHODS = require('./HTTP_METHODS');
 const toExpressPath = require('./toExpressPath');
 const compareRouteDepth = require('./compareRouteDepth');
 const compareRouteVariability = require('./compareRouteVariability');
 
-module.exports = async function mountMiddlewares(router, root, { paramChar }) {
+module.exports = function mountMiddlewares(
+  router,
+  root,
+  { paramChar, jitiOptions }
+) {
   // Extra routes to configure
   const routesFromMiddlewares = [];
   // First let's list the routes file
-  (await Promise.all(fastGlob
+  fastGlob
     .sync('**/routes.js', { cwd: root })
-    .map(async filePath => {
-      const fullPath = path.resolve(root, filePath);
-      const config = (await import(fullPath)).default;
+    .map(filePath => {
+      const jitiInstance = jiti(root, jitiOptions);
+      const config = jitiInstance(`./${filePath}`);
 
       return {
         // We need the express routePath here so that
@@ -22,7 +27,7 @@ module.exports = async function mountMiddlewares(router, root, { paramChar }) {
         routePath: toExpressPath(path.dirname(filePath), { paramChar }),
         config
       };
-    })))
+    })
     .sort(({ routePath: routePathA }, { routePath: routePathB }) => {
       return (
         compareRouteDepth(routePathA, routePathB) ||

@@ -5,7 +5,7 @@ const path = require('path');
 const { setup } = require('./lib/ava-supertest');
 
 module.exports = function(root = 'routes') {
-  return async function(t) {
+  return function(t) {
     const app = express();
     // Configure a view engine
     app.engine('njk', cons.nunjucks);
@@ -13,9 +13,7 @@ module.exports = function(root = 'routes') {
     app.set('view engine', 'html');
     app.set('views', path.join(__dirname, root));
     // Set up our middleware for testing
-    app.use(
-      await middleware(root, { cwd: __dirname, viewExtensions: ['njk'] })
-    );
+    app.use(middleware(root, { cwd: __dirname, viewExtensions: ['njk'] }));
     // Add a catch-all 404
     app.use((req, res) => res.sendStatus(404));
     // Prepare the supertest agent for querying
