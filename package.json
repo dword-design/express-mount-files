@@ -50,7 +50,8 @@
     "express": "^4.17.1"
   },
   "dependencies": {
-    "fast-glob": "^3.0.4"
+    "fast-glob": "^3.0.4",
+    "jiti": "^1.16.0"
   },
   "ava": {
     "files": [
