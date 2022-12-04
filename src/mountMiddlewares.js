@@ -13,7 +13,7 @@ module.exports = function mountMiddlewares(router, root, { jitiOptions } = {}) {
   // First let's list the routes file
   fastGlob
     .sync('**/routes.js', { cwd: root })
-    .map(async filePath => {
+    .map(filePath => {
       const jitiInstance = jiti(root, jitiOptions);
       const config = jitiInstance(`./${filePath}`);
 
