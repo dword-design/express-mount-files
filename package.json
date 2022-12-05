@@ -50,7 +50,8 @@
     "express": "^4.17.1"
   },
   "dependencies": {
-    "fast-glob": "^3.0.4"
+    "fast-glob": "^3.0.4",
+    "jiti": "npm:@dword-design/jiti@^0.0.1"
   },
   "ava": {
     "files": [
