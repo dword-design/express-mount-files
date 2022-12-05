@@ -1,5 +1,6 @@
 const fastGlob = require('fast-glob');
 const path = require('path');
+const jiti = require('jiti');
 const HTTP_METHODS = require('./HTTP_METHODS');
 const toExpressPath = require('./toExpressPath');
 const compareRouteDepth = require('./compareRouteDepth');
@@ -8,10 +9,10 @@ const compareRouteVariability = require('./compareRouteVariability');
 module.exports = function mountRoutes(
   router,
   root,
-  { routes = [], viewExtensions = [] }
+  { routes = [], viewExtensions = [], paramChar, jitiOptions }
 ) {
   routes
-    .concat(discoverRoutes(root, { viewExtensions }))
+    .concat(discoverRoutes(root, { viewExtensions, paramChar, jitiOptions }))
     .sort((routeA, routeB) => {
       return (
         -1 * compareRouteDepth(routeA.routePath, routeB.routePath) ||
@@ -25,7 +26,7 @@ module.exports = function mountRoutes(
     });
 };
 
-function discoverRoutes(root, { viewExtensions }) {
+function discoverRoutes(root, { viewExtensions, paramChar, jitiOptions }) {
   return fastGlob
     .sync(
       `**/{*.,}(${HTTP_METHODS.join('|')}).(${['js', ...viewExtensions].join(
@@ -39,10 +40,10 @@ function discoverRoutes(root, { viewExtensions }) {
       const fullPath = path.resolve(root, filePath);
       const { routePath, method, extension } = configForFile(filePath);
 
-      const handler = getHandler(fullPath, extension);
+      const handler = getHandler(fullPath, extension, { jitiOptions });
       return {
         fullPath,
-        routePath: toExpressPath(routePath),
+        routePath: toExpressPath(routePath, { paramChar }),
         method,
         extension,
         handler
@@ -66,9 +67,10 @@ function configForFile(filePath) {
   return { routePath, method, extension };
 }
 
-function getHandler(filePath, extension) {
+function getHandler(filePath, extension, { jitiOptions }) {
   if (extension == 'js') {
-    return require(filePath);
+    const jitiInstance = jiti(process.cwd(), jitiOptions);
+    return jitiInstance(`./${path.relative(process.cwd(), filePath)}`);
   } else {
     return function(req, res) {
       res.render(filePath, { req, res });

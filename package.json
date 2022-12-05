@@ -1,6 +1,6 @@
 {
-  "name": "express-mount-files",
-  "version": "0.1.1",
+  "name": "@dword-design/express-mount-files",
+  "version": "0.0.4",
   "description": "An express middleware for registering routes through your filesystem",
   "main": "src/index.js",
   "engines": {
@@ -50,11 +50,15 @@
     "express": "^4.17.1"
   },
   "dependencies": {
-    "fast-glob": "^3.0.4"
+    "fast-glob": "^3.0.4",
+    "jiti": "npm:@dword-design/jiti@^0.0.1"
   },
   "ava": {
     "files": [
       "**/*.test.js"
     ]
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
